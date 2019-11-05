@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.8.2/lib/theme-chalk/index.css">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon"/>
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon"/>
+    <title>Spark数据分析平台</title>
+</head>
+<body>
+<div id="spark_rdd">
+    <el-container>
+        <el-header>
+            <el-header>
+                <div style="text-align: center">
+                    <h2><i style="margin-bottom: 30px;">Spark 数据分析平台</i></h2>
+                </div>
+                <hr/>
+            </el-header>
+        </el-header>
+        <el-container style="margin-top: 10px;">
+            <el-aside style="width: 250px;">
+                <el-menu
+                        :default-active="activeIndex2"
+                        @select="handleSelect2"
+                        style="height: 600px;margin-top: 10px;">
+                    <el-menu-item index="1">
+                        <i class="el-icon-tickets"></i>
+                        <span>Spark RDD数据展示</span>
+                    </el-menu-item>
+                    <el-menu-item index="2">
+                        <i class="el-icon-reading"></i>
+                        <span>Spark Streaming实时分析</span>
+                    </el-menu-item>
+                    <el-menu-item index="3">
+                        <i class="el-icon-mobile"></i>
+                        <span>Spark SQL数据分析</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <h3>动态显示（根据不同电影的类型显示）</h3>
+                    <el-row :gutter="20">
+                        <el-col :span="6">
+                            <el-upload
+                                    action="http://localhost:8080/doUpload"
+                                    drag
+                                    multiple
+                                    :on-change="fileChange"
+                                    :on-success="fileSuccess">
+                                <i class="el-icon-upload"></i>
+                                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                            </el-upload>
+                        </el-col>
+                        <el-col :span="6" :offset="3">
+                            <el-select v-model="movie_type" @change="selectChange" clearable placeholder="请选择类型">
+                                <el-option
+                                        v-for="type in movie_types"
+                                        :key="type.value"
+                                        :label="type.value"
+                                        :value="type.value"></el-option>
+                            </el-select>
+                        </el-col>
+                    </el-row>
+                    <div id="main" style="width: 1000px;height: 500px;margin-top: 20px;"></div>
+                </el-main>
+            </el-container>
+        </el-container>
+    </el-container>
+</div>
+</body>
+<script src="js/vue/vue.js"></script>
+<script src="js/element/index.js"></script>
+<script src="js/axios.min.js"></script>
+<script src="js/echarts/echarts.min.js"></script>
+<script src="js/spark_streaming.js"></script>
+</html>

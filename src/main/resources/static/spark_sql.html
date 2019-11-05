@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.8.2/lib/theme-chalk/index.css">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon"/>
+    <title>Spark数据分析平台</title>
+</head>
+<body>
+<div id="spark_rdd">
+    <el-container>
+        <el-header>
+            <div style="text-align: center">
+                <h2><i style="margin-bottom: 30px;">Spark 数据分析平台</i></h2>
+            </div>
+            <hr/>
+        </el-header>
+        <el-container style="margin-top: 10px;">
+            <el-aside style="width: 250px;">
+                <el-menu
+                        :default-active="activeIndex2"
+                        @select="handleSelect2"
+                style="height: 600px;margin-top: 10px;">
+                    <el-menu-item index="1">
+                        <i class="el-icon-tickets"></i>
+                        <span>Spark RDD数据展示</span>
+                    </el-menu-item>
+                    <el-menu-item index="2">
+                        <i class="el-icon-reading"></i>
+                        <span>Spark Streaming实时分析</span>
+                    </el-menu-item>
+                    <el-menu-item index="3">
+                        <i class="el-icon-mobile"></i>
+                        <span>Spark SQL数据分析</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <h3>条件筛选</h3>
+                    <el-row :gutter="20">
+                       <el-col :span="4">
+                           <el-select v-model="gender" clearable placeholder="请选择性别">
+                               <el-option
+                                    v-for="item in genders"
+                                    :key="item.value"
+                                    :label="item.label"
+                                    :value="item.value"></el-option>
+                           </el-select>
+                       </el-col>
+                        <el-col :span="4">
+                            <el-select v-model="ageGroup" clearable placeholder="请选择年龄段">
+                                <el-option
+                                    v-for="item in ageGroups"
+                                    :key="item.value"
+                                    :label="item.label"
+                                    :value="item.value"></el-option>
+                            </el-select>
+                        </el-col>
+                        <el-col :span="4">
+                            <el-button @click="search_rating">查询</el-button>
+                        </el-col>
+                    </el-row>
+
+                    <div id="main" style="width: 1000px;height: 400px;">
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+    </el-container>
+</div>
+</body>
+<script src="js/vue/vue.js"></script>
+<script src="js/element/index.js"></script>
+<script src="js/axios.min.js"></script>
+<script src="js/echarts/echarts.min.js"></script>
+<script src="js/spark_sql.js"></script>
+</html>
