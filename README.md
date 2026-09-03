@@ -21,19 +21,43 @@
 
 > **项目定位**
 >
-> 这是一个 Spark 全栈教学示例：后端连接 HDFS 和 MySQL 完成批处理、流处理及统计查询，前端将结果展示为数据表格、实时折线图和分类柱状图。
+> 这是一个 Spark 全栈示例：后端连接 HDFS(Hadoop的文件存储系统) 和 MySQL 完成批处理、流处理及统计查询，前端将结果展示为数据表格、实时折线图和分类柱状图。
 
 > **兼容性提醒**
 >
 > 项目最初完成于 2019 年，使用 Spring Boot 1.5、Spark 2.4 和 Hadoop 2.7。推荐使用 **JDK 8** 运行，不建议在未做兼容性改造的情况下直接升级 JDK 或核心依赖。
 
-## ✨ 核心能干什么
+## ✨ Spark 核心能干什么
 
-| 核心能力 | 数据从哪里来 | Spark 如何处理 | 最终能看到什么 |
+### Spark RDD：处理大规模、非结构化或半结构化数据
+
+Spark RDD 能通过 `JavaSparkContext.textFile()` 从庞大的 HDFS 文件系统以及其他 Hadoop 支持的数据源中读取文件，并将文件内容构造成可在集群中并行处理的分布式数据集 `JavaRDD`。
+
+得到 RDD 后，可以使用 `map`、`filter`、`flatMap` 清洗和转换数据，使用 `reduceByKey`、`count`、`reduce` 完成统计聚合，使用 `cache` / `persist` 缓存需要重复计算的数据，还可以通过 `collect`、`take` 或 `saveAsTextFile` 将计算结果返回程序或写回文件系统。RDD 的转换采用惰性计算，并可依据数据依赖关系在节点故障后重新计算丢失的分区。
+
+在本项目中，RDD 相关代码用于读取电影文件、统计电影数量以及计算电影类型词频。需要注意：网页上的电影条件检索实际使用的是 `spark.read().csv()` 和 `Dataset<Row>`，严格来说属于 Spark SQL / DataFrame API，而不是 RDD API。
+
+### Spark Streaming：持续接收并分批处理新增数据
+
+Spark Streaming 能持续接收 HDFS 兼容文件系统、Socket、Kafka 等数据源产生的新数据，并按照指定时间间隔切分成一个个微批次；DStream 在内部就是一系列连续的 RDD。每个批次都可以执行 `map`、`filter`、`reduceByKey`、`window` 等处理，再通过 `foreachRDD` 把结果写入文件、数据库或实时看板。
+
+在本项目中，`JavaStreamingContext.textFileStream()` 每 20 秒检查一次 HDFS `/flm` 目录，读取新到达的评分文件，提取 CSV 第三列评分，再通过 WebSocket 推送给浏览器绘制折线图。因此这里的“实时”准确说是 **20 秒一个批次的准实时处理**，并不是逐条、毫秒级处理。
+
+> 当前 Apache Spark 已将基于 DStream 的 Spark Streaming 标记为旧版流处理引擎，新项目通常应优先使用基于 DataFrame / Dataset 的 Structured Streaming；本项目为了对应 Spark 2.4 示例，仍保留 DStream 实现。
+
+### Spark SQL：对结构化数据进行查询、关联和聚合
+
+Spark SQL 能通过 `SparkSession.read()` 从 CSV、JSON、Parquet、Hive、JDBC 数据库等数据源加载结构化数据，并返回 `Dataset<Row>`。随后可以使用 `select`、`filter`、`join`、`groupBy`、`avg`、`orderBy` 等 DataFrame API，或者注册临时视图后直接执行 SQL，对海量结构化数据进行筛选、关联、分组和统计，最后再写回 HDFS、Hive 或 MySQL。
+
+在本项目中，`SparkSqlUtils` 使用 Spark SQL 读取用户、电影和评分数据，完成数据关联与字段筛选，并把分析结果写入 MySQL 的 `temp_analysis` 表。页面展示阶段再按性别、年龄段和电影类型查询平均评分。需要注意：当前 `/getAllTypeAverageNum` 接口的最终平均分查询由普通 JDBC SQL 完成，并没有直接调用 Spark SQL。
+
+### 项目最终呈现
+
+| 页面能力 | 数据从哪里来 | 实际处理方式 | 最终能看到什么 |
 | --- | --- | --- | --- |
-| 🔎 **检索电影** | HDFS 中的 `movies.csv` | 使用 Spark 读取 CSV，按电影名称和类型过滤 | 可分页的电影 ID、名称和类型列表 |
-| 📈 **观察实时评分** | 上传到 HDFS `/flm` 的新评分文件 | Spark Streaming 每 20 秒监听一次，并提取评分字段 | WebSocket 实时推送的评分折线图 |
-| 📊 **分析观影偏好** | MySQL `temp_analysis` 表 | Spark SQL 负责关联/写入分析数据，页面按性别、年龄段和类型聚合查询 | 不同电影类型的平均分柱状图 |
+| 🔎 **检索电影** | HDFS 中的 `movies.csv` | Spark SQL/DataFrame 读取 CSV，按电影名称和类型过滤 | 可分页的电影 ID、名称和类型列表 |
+| 📈 **观察实时评分** | 上传到 HDFS `/flm` 的新评分文件 | Spark Streaming 每 20 秒形成一个微批次并提取评分字段 | WebSocket 推送的评分折线图 |
+| 📊 **分析观影偏好** | Spark SQL 生成并写入 MySQL 的 `temp_analysis` 数据 | 页面接口使用 JDBC，按性别、年龄段和类型聚合查询 | 不同电影类型的平均分柱状图 |
 
 三个功能分别对应以下页面：
 
@@ -236,7 +260,45 @@ sparkproject/
 - 当前实现主要用于学习和演示，数据库查询存在字符串拼接，上传接口也未做完整的文件类型、文件名和权限校验，不应未经加固直接部署到公网。
 - 更完整的项目背景、处理过程和界面截图见 [`src/main/resources/doc/Spark项目说明文档.docx`](src/main/resources/doc/Spark项目说明文档.docx)。
 
+## 🎈页面展示
+
+### Spark RDD
+
+
+<div align="center">
+<p>图1-电影类型查询</p>
+<img src="src/main/resources/static/images/spark1.png" alt="图1" />
+</div>
+
+### Spark Streaming
+
+<div align="center">
+<p>图2-无数据页面</p>
+<img src="src/main/resources/static/images/spark2.png" alt="图2" />
+<br/>
+<p>上传文件part-0005.txt后折线图发生变化</p>
+<p>图3-实时数据显示1</p>
+<img src="src/main/resources/static/images/spark3.png" alt="图3" />
+<p>图4-实时数据显示2</p>
+<img src="src/main/resources/static/images/spark4.png" alt="图4" />
+</div>
+
+### Spark SQL
+
+<div align="center">
+<p>图5-筛选后存储的数据存储在temp_analysis表中，temp_analysis表数据</p>
+<img src="src/main/resources/static/images/spark5.png" alt="图5" />
+<p>图6-无条件显示</p>
+<img src="src/main/resources/static/images/spark6.png" alt="图6" />
+<p>图7-条件筛选</p>
+<img src="src/main/resources/static/images/spark7.png" alt="图7" />
+</div>
+
+
 ## 📚 参考资料
 
 - Holden Karau、Andy Konwinski：《Spark 快速大数据分析》
-- Apache Spark 官方文档与 API
+- [Apache Spark 2.4.0 RDD Programming Guide](https://spark.apache.org/docs/2.4.0/rdd-programming-guide.html)
+- [Apache Spark 2.4.0 Spark Streaming Programming Guide](https://spark.apache.org/docs/2.4.0/streaming-programming-guide.html)
+- [Apache Spark 2.4.0 Spark SQL、DataFrame 与 Dataset Guide](https://spark.apache.org/docs/2.4.0/sql-programming-guide.html)
+- [Apache Spark 当前版本 FAQ：DStream 与 Structured Streaming 的说明](https://spark.apache.org/faq.html)
